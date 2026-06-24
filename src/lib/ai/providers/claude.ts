@@ -31,9 +31,21 @@ export class ClaudeProvider extends BaseTextProvider {
         },
       });
     } else if (input.imageUrl) {
+      const res = await fetch(input.imageUrl);
+      const arrayBuffer = await res.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString("base64");
+      const mimeType = (res.headers.get("content-type") ?? "image/jpeg") as
+        | "image/jpeg"
+        | "image/png"
+        | "image/gif"
+        | "image/webp";
       userContent.push({
         type: "image",
-        source: { type: "url", url: input.imageUrl },
+        source: {
+          type: "base64",
+          media_type: mimeType,
+          data: base64,
+        },
       });
     }
 
