@@ -7,13 +7,14 @@ import type { VideoProvider } from "@/types";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
+  const { jobId } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const video = await prisma.video.findFirst({
-    where: { externalId: params.jobId },
+    where: { externalId: jobId },
     include: { project: { include: { user: true } } },
   });
 
@@ -26,7 +27,7 @@ export async function GET(
   }
 
   const provider = createVideoProvider(video.provider as VideoProvider);
-  const status = await provider.getStatus(params.jobId);
+  const status = await provider.getStatus(jobId);
 
   // update DB
   await prisma.video.update({
