@@ -76,7 +76,7 @@ export function Sidebar() {
 
       {/* User */}
       <div className="p-4 border-t border-white/5 flex items-center gap-3">
-        <UserButton afterSignOutUrl="/" />
+        <UserButton fallbackRedirectUrl="/" />
         <div className="flex-1 min-w-0">
           <p className="text-xs text-white/40 truncate">Account</p>
         </div>
