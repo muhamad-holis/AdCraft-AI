@@ -17,7 +17,6 @@ import type {
 } from "@/types";
 
 interface CreationActions {
-  // Setters
   setStep: (step: number) => void;
   setProductName: (v: string) => void;
   setProductDesc: (v: string) => void;
@@ -32,8 +31,6 @@ interface CreationActions {
   setVoiceGender: (g: VoiceGender) => void;
   setVoiceLanguage: (l: Language) => void;
   setMusicMood: (m: MusicMood) => void;
-
-  // AI Results
   setProjectId: (id: string) => void;
   setAnalysis: (a: ProductAnalysis) => void;
   setScript: (s: ScriptOutput) => void;
@@ -41,9 +38,7 @@ interface CreationActions {
   setMarketingCopy: (c: MarketingCopyOutput) => void;
   setVideoJobs: (jobs: VideoGenerationJob[]) => void;
   updateVideoJob: (jobId: string, update: Partial<VideoGenerationJob>) => void;
-
-  // UI
-  setLoading: (loading: boolean, step?: string) => void;
+  setLoading: (loading: boolean, step?: string | null) => void;
   setError: (err: string | null) => void;
   reset: () => void;
 }
@@ -114,7 +109,7 @@ export const useCreationStore = create<CreationState & CreationActions>()(
         })),
 
       setLoading: (isLoading, loadingStep = null) =>
-        set({ isLoading, loadingStep }),
+        set({ isLoading, loadingStep: loadingStep ?? null }),
       setError: (error) => set({ error }),
       reset: () => set(initialState),
     }),
