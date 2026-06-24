@@ -6,7 +6,6 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F]">
       <SignIn
         appearance={{
-          baseTheme: undefined,
           variables: {
             colorPrimary: "#8B5CF6",
             colorBackground: "#0D0D14",
