@@ -3,19 +3,20 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Copy, Film } from "lucide-react";
+import { ArrowLeft, Download, Film } from "lucide-react";
 
 export default async function ProjectDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const { userId } = await auth();
   const user = await prisma.user.findUnique({ where: { clerkId: userId! } });
   if (!user) notFound();
 
   const project = await prisma.project.findUnique({
-    where: { id: params.id, userId: user.id },
+    where: { id: id, userId: user.id },
     include: {
       script: true,
       storyboard: { include: { scenes: { orderBy: { order: "asc" } } } },
