@@ -123,7 +123,7 @@ export interface BrandKitConfig {
 
 // ─── PROVIDER TYPES ──────────────────────────
 export type TextProvider = "openai" | "claude" | "gemini";
-export type VideoProvider = "runway" | "kling" | "pika" | "luma" | "veo";
+export type VideoProvider = "runway" | "kling" | "pika" | "luma";
 
 export interface ProviderConfig {
   text: TextProvider;
@@ -132,10 +132,7 @@ export interface ProviderConfig {
 
 // ─── CREATION STORE ──────────────────────────
 export interface CreationState {
-  // Step
   currentStep: number;
-
-  // Product Input
   productName: string;
   productDesc: string;
   targetAudience: string;
@@ -143,8 +140,6 @@ export interface CreationState {
   imageFile: File | null;
   imagePreview: string | null;
   imageUrl: string | null;
-
-  // Settings
   style: VideoStyle;
   template: string | null;
   formats: VideoFormat[];
@@ -152,16 +147,12 @@ export interface CreationState {
   voiceGender: VoiceGender;
   voiceLanguage: Language;
   musicMood: MusicMood;
-
-  // Generated
   projectId: string | null;
   analysis: ProductAnalysis | null;
   script: ScriptOutput | null;
   storyboard: StoryboardOutput | null;
   marketingCopy: MarketingCopyOutput | null;
   videoJobs: VideoGenerationJob[];
-
-  // UI
   isLoading: boolean;
   loadingStep: string | null;
   error: string | null;

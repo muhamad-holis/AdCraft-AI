@@ -23,13 +23,7 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const {
-    projectId,
-    formats,
-    resolution,
-    videoProvider,
-    musicMood,
-  } = await req.json();
+  const { projectId, formats, resolution, videoProvider, musicMood } = await req.json();
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -44,14 +38,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Script not generated yet" }, { status: 400 });
   }
 
+  if (!project.imageUrl) {
+    return NextResponse.json({ error: "No image uploaded" }, { status: 400 });
+  }
+
   const provider = createVideoProvider((videoProvider ?? "runway") as VideoProvider);
+  const imageUrl = project.imageUrl;
 
   const jobs = await Promise.all(
     (formats as VideoFormat[]).map(async (format) => {
       const prompt = buildVideoPrompt(project.script!, project.style, musicMood);
 
       const job = await provider.submitJob({
-        imageUrl: project.imageUrl,
+        imageUrl,
         prompt,
         duration: 15,
         aspectRatio: FORMAT_ASPECT[format],

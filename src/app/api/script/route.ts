@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { generateScript } from "@/lib/ai/scriptGenerator";
 import { generateStoryboard } from "@/lib/ai/storyboardGenerator";
-import type { ProductAnalysis } from "@/types";
+import type { ProductAnalysis, VideoStyle, Language } from "@/types";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -29,19 +29,44 @@ export async function POST(req: NextRequest) {
     productDesc: project.productDesc,
     targetAudience: project.targetAudience,
     customPrompt: project.customPrompt ?? undefined,
-    style: project.style,
-    language: language ?? "INDONESIAN",
+    style: project.style as unknown as VideoStyle,
+    language: (language ?? "INDONESIAN") as Language,
     analysis,
   });
 
   // Generate storyboard
-  const storyboard = await generateStoryboard({ script, style: project.style, analysis });
+  const storyboard = await generateStoryboard({
+    script,
+    style: project.style as unknown as VideoStyle,
+    analysis,
+  });
 
-  // Save to DB
+  // Save script to DB (explicit fields to avoid type mismatch)
   await prisma.script.upsert({
     where: { projectId },
-    create: { projectId, ...script },
-    update: { ...script },
+    create: {
+      projectId,
+      headline: script.headline,
+      hook: script.hook,
+      voiceover: script.voiceover,
+      cta: script.cta,
+      hashtags: script.hashtags,
+      benefits: script.benefits,
+      painPoints: script.painPoints,
+      solutions: script.solutions,
+      marketingAngle: script.marketingAngle,
+    },
+    update: {
+      headline: script.headline,
+      hook: script.hook,
+      voiceover: script.voiceover,
+      cta: script.cta,
+      hashtags: script.hashtags,
+      benefits: script.benefits,
+      painPoints: script.painPoints,
+      solutions: script.solutions,
+      marketingAngle: script.marketingAngle,
+    },
   });
 
   const sb = await prisma.storyboard.upsert({
@@ -50,13 +75,27 @@ export async function POST(req: NextRequest) {
     update: {},
   });
 
-  // save scenes
+  // Save scenes
   await prisma.scene.deleteMany({ where: { storyboardId: sb.id } });
   await prisma.scene.createMany({
-    data: storyboard.scenes.map((s) => ({ storyboardId: sb.id, ...s })),
+    data: storyboard.scenes.map((s) => ({
+      storyboardId: sb.id,
+      order: s.order,
+      type: s.type,
+      title: s.title,
+      description: s.description,
+      duration: s.duration,
+      textOverlay: s.textOverlay,
+      transition: s.transition,
+      cameraMove: s.cameraMove,
+      visualNote: s.visualNote,
+    })),
   });
 
-  await prisma.project.update({ where: { id: projectId }, data: { status: "GENERATING" } });
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: "GENERATING" },
+  });
 
   return NextResponse.json({ success: true, data: { script, storyboard } });
 }

@@ -25,19 +25,43 @@ export async function POST(req: NextRequest) {
   }
 
   const analysis = project.analysis as unknown as ProductAnalysis;
+  const lang = (language ?? "INDONESIAN") as Language;
 
   const copy = await generateMarketingCopy({
     productName: project.productName,
     productDesc: project.productDesc,
     script: project.script as unknown as ScriptOutput,
     analysis,
-    language: (language ?? "INDONESIAN") as Language,
+    language: lang,
   });
 
   await prisma.marketingCopy.upsert({
     where: { projectId },
-    create: { projectId, ...copy },
-    update: { ...copy },
+    create: {
+      projectId,
+      language: lang,
+      tiktokCaption: copy.tiktokCaption,
+      tiktokHooks: copy.tiktokHooks,
+      tiktokHashtags: copy.tiktokHashtags,
+      instagramCaption: copy.instagramCaption,
+      shopeeTitle: copy.shopeeTitle,
+      tokopediaTitle: copy.tokopediaTitle,
+      productDesc: copy.productDesc,
+      facebookAdsCopy: copy.facebookAdsCopy,
+      whatsappMessage: copy.whatsappMessage,
+    },
+    update: {
+      language: lang,
+      tiktokCaption: copy.tiktokCaption,
+      tiktokHooks: copy.tiktokHooks,
+      tiktokHashtags: copy.tiktokHashtags,
+      instagramCaption: copy.instagramCaption,
+      shopeeTitle: copy.shopeeTitle,
+      tokopediaTitle: copy.tokopediaTitle,
+      productDesc: copy.productDesc,
+      facebookAdsCopy: copy.facebookAdsCopy,
+      whatsappMessage: copy.whatsappMessage,
+    },
   });
 
   return NextResponse.json({ success: true, data: copy });
