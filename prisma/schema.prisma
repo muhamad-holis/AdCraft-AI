@@ -1,0 +1,370 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
+  name          String?
+  avatarUrl     String?
+  plan          Plan     @default(FREE)
+  credits       Int      @default(3)         // monthly generation credits
+  totalVideos   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projects      Project[]
+  payments      Payment[]
+  brandAssets   BrandAsset[]
+  generations   Generation[]
+
+  @@index([clerkId])
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  AGENCY
+}
+
+// ─────────────────────────────────────────────
+// PROJECT
+// ─────────────────────────────────────────────
+model Project {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  productName     String
+  productDesc     String        @db.Text
+  targetAudience  String
+  customPrompt    String?       @db.Text
+  style           VideoStyle    @default(MODERN)
+  template        String?
+
+  // uploaded image
+  imageUrl        String
+  imageKey        String        // R2 storage key
+
+  // AI analysis results
+  analysis        Json?         // ProductAnalysis
+
+  status          ProjectStatus @default(DRAFT)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  videos          Video[]
+  script          Script?
+  storyboard      Storyboard?
+  marketingCopy   MarketingCopy?
+  generations     Generation[]
+
+  @@index([userId])
+}
+
+enum ProjectStatus {
+  DRAFT
+  ANALYZING
+  SCRIPTING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+enum VideoStyle {
+  LUXURY
+  VIRAL_TIKTOK
+  CINEMATIC
+  EMOTIONAL
+  PREMIUM
+  MINIMALIST
+  AGGRESSIVE_SALES
+  DIRECT_RESPONSE
+  MODERN
+}
+
+// ─────────────────────────────────────────────
+// SCRIPT
+// ─────────────────────────────────────────────
+model Script {
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  headline       String
+  hook           String   @db.Text
+  voiceover      String   @db.Text
+  cta            String
+  hashtags       String[]
+  benefits       String[]
+  painPoints     String[]
+  solutions      String[]
+  marketingAngle String
+
+  aiProvider     String   @default("claude")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// STORYBOARD
+// ─────────────────────────────────────────────
+model Storyboard {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  scenes    Scene[]
+  createdAt DateTime @default(now())
+}
+
+model Scene {
+  id           String     @id @default(cuid())
+  storyboardId String
+  storyboard   Storyboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+
+  order        Int
+  type         SceneType
+  title        String
+  description  String     @db.Text
+  duration     Int        // seconds
+  textOverlay  String?
+  transition   String?
+  cameraMove   String?
+  visualNote   String?
+
+  @@index([storyboardId])
+}
+
+enum SceneType {
+  OPENING
+  PRODUCT_SHOWCASE
+  BENEFITS
+  SOCIAL_PROOF
+  CTA
+}
+
+// ─────────────────────────────────────────────
+// VIDEO
+// ─────────────────────────────────────────────
+model Video {
+  id         String      @id @default(cuid())
+  projectId  String
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  format     VideoFormat
+  resolution VideoResolution @default(FHD_1080P)
+  status     VideoStatus @default(QUEUED)
+  progress   Int         @default(0) // 0-100
+
+  // storage
+  storageKey String?
+  url        String?
+  thumbnail  String?
+  duration   Float?      // seconds
+  fileSize   Int?        // bytes
+
+  // provider
+  provider   String?     // runway, kling, pika, luma
+  externalId String?     // job id from provider
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  exports    VideoExport[]
+
+  @@index([projectId])
+}
+
+enum VideoFormat {
+  TIKTOK_916
+  INSTAGRAM_11
+  YOUTUBE_169
+}
+
+enum VideoResolution {
+  FHD_1080P
+  QHD_2K
+  UHD_4K
+}
+
+enum VideoStatus {
+  QUEUED
+  PROCESSING
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+model VideoExport {
+  id         String   @id @default(cuid())
+  videoId    String
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  format     String   // mp4, webm
+  resolution String
+  url        String
+  fileSize   Int
+  createdAt  DateTime @default(now())
+
+  @@index([videoId])
+}
+
+// ─────────────────────────────────────────────
+// MARKETING COPY
+// ─────────────────────────────────────────────
+model MarketingCopy {
+  id              String   @id @default(cuid())
+  projectId       String   @unique
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  language        Language @default(INDONESIAN)
+
+  // Social Media
+  tiktokCaption   String   @db.Text
+  tiktokHooks     String[] 
+  tiktokHashtags  String[]
+  instagramCaption String  @db.Text
+
+  // Marketplace
+  shopeeTitle     String
+  tokopediaTitle  String
+  productDesc     String   @db.Text
+
+  // Ads
+  facebookAdsCopy String   @db.Text
+  whatsappMessage String   @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Language {
+  INDONESIAN
+  ENGLISH
+}
+
+// ─────────────────────────────────────────────
+// BRAND ASSET
+// ─────────────────────────────────────────────
+model BrandAsset {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name       String   @default("My Brand")
+  logoUrl    String?
+  logoKey    String?
+  colors     String[] // hex values
+  fonts      String[]
+  ctaText    String?
+  style      VideoStyle @default(MODERN)
+
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// GENERATION LOG
+// ─────────────────────────────────────────────
+model Generation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id])
+
+  type       GenerationType
+  provider   String
+  model      String
+  inputTokens  Int?
+  outputTokens Int?
+  cost       Float?
+  durationMs Int?
+  success    Boolean  @default(true)
+  error      String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+enum GenerationType {
+  ANALYSIS
+  SCRIPT
+  STORYBOARD
+  VIDEO
+  VOICEOVER
+  MARKETING_COPY
+}
+
+// ─────────────────────────────────────────────
+// TEMPLATE
+// ─────────────────────────────────────────────
+model Template {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String
+  category    String
+  style       VideoStyle
+  thumbnail   String
+  config      Json       // TemplateConfig
+  isPremium   Boolean    @default(false)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────────
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  stripeSessionId      String?
+
+  amount          Int           // in cents
+  currency        String        @default("usd")
+  plan            Plan
+  status          PaymentStatus @default(PENDING)
+  interval        BillingInterval?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
